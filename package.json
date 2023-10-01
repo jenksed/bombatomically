@@ -7,14 +7,12 @@
         "bombatomically": "./bin/index.js"
     },
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node ./bin/index.js"
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
-    "author": "Joshua Jenks <joshua.jenks@crownbio.com> (https://crownbio.com/)",
+    "author": "",
     "license": "ISC",
     "dependencies": {
         "boxen": "^7.1.1",
-        "chalk": "^4.1.2",
-        "figlet": "^1.6.0"
+        "commander": "^11.0.0"
     }
 }

@@ -302,7 +302,50 @@ program
             });
         });
     }
-    
+
+/**
+ * Add a React component as an Atomic Element.
+ * @param {string} category - The category of the Atomic Element (atom, molecule, organism, template, page).
+ * @param {string} element - The name of the Atomic Element.
+ */
+function addAtomicElement(category, element) {
+    // Define valid categories
+    const validCategories = ['atom', 'molecule', 'organism', 'template', 'page'];
+  
+    // Check if the provided category is valid
+    if (!validCategories.includes(category)) {
+      console.error('Invalid category. Please choose from: atom, molecule, organism, template, or page.');
+      return;
+    }
+  
+    // Create a directory for the Atomic Element within the specified category
+    const elementDir = path.join(__dirname, `src/components/${category}`, element);
+    fs.mkdirSync(elementDir, { recursive: true });
+  
+    // Create the component file (e.g., Element.js)
+    const componentFile = path.join(elementDir, `${element}.js`);
+    const componentContent = `
+        import React from 'react';
+        
+        function ${element}() {
+            return (
+            <div className="${element}">
+                {/* Your component content goes here */}
+            </div>
+            );
+        }
+        
+        export default ${element};
+    `;
+  
+    fs.writeFileSync(componentFile, componentContent);
+  
+    console.log(`Atomic Element "${element}" added successfully to the "${category}" category.`);
+  }
+  
+
+
+  
     
 // Parse the command-line arguments
 program.parse(process.argv);
