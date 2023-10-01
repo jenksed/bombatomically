@@ -3,8 +3,19 @@
 const program = require('commander');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');  // Declare exec here
+const { exec } = require('child_process');
 
+const config = loadConfig();
+
+function loadConfig() {
+    const configPath = path.join(.__dirname, 'config', 'config.json');
+    if (fs.existsSync(configPath)) {
+        return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } else {
+        console.error('Config file not found.');
+        process.exit(1);
+    }
+}
 
 program
   .command('init <name>')
@@ -12,6 +23,13 @@ program
   .option('--state <type>', 'Choose state management tool: redux or context')
   .action((name, options) => {
     initAtomicReactApp(name, options);
+  });
+
+  program
+  .command('add <category> <element>')
+  .description('Add a new Atomic Element to the project')
+  .action((category, element) => {
+    addAtomicElement(category, element);
   });
     
     /**
@@ -197,29 +215,29 @@ program
             // Create index.js
             const indexPath = path.join(srcPath, 'index.js');
             const indexContent = `
-    import React from 'react';
-    import ReactDOM from 'react-dom';
-    import App from './App';
+            import React from 'react';
+            import ReactDOM from 'react-dom';
+            import App from './App';
 
-    ReactDOM.render(<App />, document.getElementById('root'));
-    `;
+            ReactDOM.render(<App />, document.getElementById('root'));
+            `;
             fs.writeFileSync(indexPath, indexContent);
 
             // Create App.js
             const appPath = path.join(srcPath, 'App.js');
             const appContent = `
-    import React from 'react';
+            import React from 'react';
 
-    function App() {
-        return (
-            <div className="App">
-                <h1>Hello, world!</h1>
-            </div>
-        );
-    }
+            function App() {
+                return (
+                    <div className="App">
+                        <h1>Hello, world!</h1>
+                    </div>
+                );
+            }
 
-    export default App;
-    `;
+            export default App;
+            `;
             fs.writeFileSync(appPath, appContent);
 
             console.log('Base files created successfully.');
@@ -296,6 +314,7 @@ program
                     updatePackageJson();  // Updating package.json file
                     createBaseFiles();  // Creating base files (index.js and App.js)
                     createAtomicDesignStructure();
+                    createBaseComponents(); // Automatically create these base components
     
                     console.log('Project initialized successfully with options:', options);
                 });
@@ -303,45 +322,96 @@ program
         });
     }
 
-/**
- * Add a React component as an Atomic Element.
- * @param {string} category - The category of the Atomic Element (atom, molecule, organism, template, page).
- * @param {string} element - The name of the Atomic Element.
- */
-function addAtomicElement(category, element) {
-    // Define valid categories
-    const validCategories = ['atom', 'molecule', 'organism', 'template', 'page'];
-  
-    // Check if the provided category is valid
-    if (!validCategories.includes(category)) {
-      console.error('Invalid category. Please choose from: atom, molecule, organism, template, or page.');
-      return;
+    /**
+     * Automatically create base components when initializing a new project.
+     */
+    function createBaseComponents() {
+        const categories = ['atoms', 'molecules', 'organisms', 'templates', 'pages'];
+        const libPath = path.join(__dirname, config.libPath);
+
+
+        categories.forEach(category => {
+            const categoryPath = path.join(libPath, category);
+            if (fs.existsSync(categoryPath)) {
+                fs.readdirSync(categoryPath).forEach(file => {
+                    const elementName = path.basename(file, '.js');
+                    const elementPath = path.join(categoryPath, file);
+                    const elementContent = fs.readFileSync(elementPath, 'utf-8');
+
+                    // Create component directory and files
+                    const elementDir = path.join(process.cwd(), `src/components/${category}`, elementName);
+                    if (!fs.existsSync(elementDir)) {
+                        fs.mkdirSync(elementDir, { recursive: true });
+                    }
+
+                    // Write JS file
+                    fs.writeFileSync(path.join(elementDir, `${elementName}.js`), elementContent);
+
+                    // Create and write CSS file (if needed)
+                    const cssContent = `
+                        .${elementName} {
+                            /* Your CSS styles go here */
+                        }
+                    `;
+                    fs.writeFileSync(path.join(elementDir, `${elementName}.css`), cssContent);
+                });
+            }
+        });
     }
-  
-    // Create a directory for the Atomic Element within the specified category
-    const elementDir = path.join(__dirname, `src/components/${category}`, element);
-    fs.mkdirSync(elementDir, { recursive: true });
-  
-    // Create the component file (e.g., Element.js)
-    const componentFile = path.join(elementDir, `${element}.js`);
-    const componentContent = `
-        import React from 'react';
-        
-        function ${element}() {
-            return (
-            <div className="${element}">
-                {/* Your component content goes here */}
-            </div>
-            );
+
+    /**
+     * Add a React component as an Atomic Element.
+     * @param {string} category - The category of the Atomic Element (atom, molecule, organism, template, page).
+     * @param {string} element - The name of the Atomic Element.
+     */
+    function addAtomicElement(category, element) {
+        // Define valid categories
+        const validCategories = ['atoms', 'molecules', 'organisms', 'templates', 'pages'];
+
+        // Check if the provided category is valid
+        if (!validCategories.includes(category)) {
+            console.error('Invalid category. Please choose from: atoms, molecules, organisms, templates, or pages.');
+            return;
         }
-        
-        export default ${element};
-    `;
-  
-    fs.writeFileSync(componentFile, componentContent);
-  
-    console.log(`Atomic Element "${element}" added successfully to the "${category}" category.`);
-  }
+
+        // Create a directory for the Atomic Element within the specified category
+        const elementDir = path.join(process.cwd(), `src/components/${category}`, element);
+        if (!fs.existsSync(elementDir)) {
+            fs.mkdirSync(elementDir, { recursive: true });
+        } else {
+            console.error(`The component "${element}" already exists in the "${category}" category.`);
+            return;
+        }
+
+        // Create the component file (e.g., Element.js)
+        const componentFile = path.join(elementDir, `${element}.js`);
+        const componentContent = `
+            import React from 'react';
+            import './${element}.css';  // Import the CSS file
+            
+            const ${element} = () => (
+                <div className="${element}">
+                    {/* Your component content goes here */}
+                </div>
+            );
+            
+            export default ${element};
+        `;
+        fs.writeFileSync(componentFile, componentContent);
+
+        // Create the CSS file (e.g., Element.css)
+        const cssFile = path.join(elementDir, `${element}.css`);
+        const cssContent = `
+            .${element} {
+                /* Your CSS styles go here */
+            }
+        `;
+        fs.writeFileSync(cssFile, cssContent);
+
+        console.log(`Atomic Element "${element}" added successfully to the "${category}" category.`);
+    }
+
+
   
 
 
